@@ -10,11 +10,6 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-    env:
-      DOCKER_REGISTRY: "us-central1-docker.pkg.dev"
     steps:
       - uses: actions/checkout@v3
         with:

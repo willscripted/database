@@ -46,6 +46,9 @@ jobs:
   plan:
     name: "Run: Plan"
     uses: ./.github/workflows/callable-run-plan.yml
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     secrets: inherit
     needs:
       - test

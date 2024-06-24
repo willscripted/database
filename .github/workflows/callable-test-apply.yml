@@ -10,9 +10,6 @@ on:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    permissions:
-      contents: 'read'
-      id-token: 'write'
     env:
       DOCKER_REGISTRY: "us-central1-docker.pkg.dev"
     services:
@@ -38,9 +35,9 @@ jobs:
         run: |
           docker run \
             --net=host \
-            -v $PWD/sql:/flyway/sql
+            -v $PWD/sql:/flyway/sql \
             -e "FLYWAY_URL=jdbc:postgresql://localhost:5432/postgres" \
             -e "FLYWAY_USER=postgres" \
             -e "FLYWAY_PASSWORD=postgres" \
-            flyway/flyway:10-alpine plan
+            flyway/flyway:10-alpine info
 
