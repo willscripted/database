@@ -50,6 +50,7 @@ jobs:
             -e "FLYWAY_URL=jdbc:postgresql://localhost:8000/all_svc_postgrest" \
             -e "FLYWAY_USER=all-github-db-migrations@gifted-mountain-413701.iam" \
             -e "FLYWAY_PASSWORD=" \
+            -e "FLYWAY_DEFAULT_SCHEMA=postgrest_api" \
             flyway/flyway:10-alpine info
 
       - name: Print SQL Proxy Logs
