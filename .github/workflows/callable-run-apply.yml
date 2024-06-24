@@ -6,6 +6,10 @@ on:
         description: 'The git sha to build'
         required: true
         type: string
+      GCLOUD_DOCKER_ACCESS_TOKEN:
+        description: Access token to use as docker password credential
+        required: true
+        type: string
 
 jobs:
   preview:
