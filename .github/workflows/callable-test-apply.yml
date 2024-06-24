@@ -39,5 +39,5 @@ jobs:
             -e "FLYWAY_URL=jdbc:postgresql://localhost:5432/postgres" \
             -e "FLYWAY_USER=postgres" \
             -e "FLYWAY_PASSWORD=postgres" \
-            flyway/flyway:10-alpine info
+            flyway/flyway:10-alpine migrate
 
