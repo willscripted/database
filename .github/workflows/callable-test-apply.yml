@@ -1,0 +1,46 @@
+name: Test Apply
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: 'The git sha to build'
+        required: true
+        type: string
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      DOCKER_REGISTRY: "us-central1-docker.pkg.dev"
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Run Service
+        run: |
+          docker run \
+            --net=host \
+            -v $PWD/sql:/flyway/sql
+            -e "FLYWAY_URL=jdbc:postgresql://localhost:5432/postgres" \
+            -e "FLYWAY_USER=postgres" \
+            -e "FLYWAY_PASSWORD=postgres" \
+            flyway/flyway:10-alpine plan
+

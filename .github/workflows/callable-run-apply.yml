@@ -1,0 +1,54 @@
+name: "Migrations: Plan"
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: 'The git sha to build'
+        required: true
+        type: string
+
+jobs:
+  preview:
+    name: Migration (${{ github.ref_name }}) - Info
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.sha }}
+
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/1092955291502/locations/global/workloadIdentityPools/github/providers/willscripted-github-provider'
+          service_account: 'all-github-db-migrations@gifted-mountain-413701.iam.gserviceaccount.com'
+  
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          version: '>= 398.0.0'
+
+      - run: |
+          sudo apt-get update && sudo apt-get -y install wget
+          wget -nv https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+
+      - name: Run Migrations
+        run: |
+          ./cloud_sql_proxy -instances=willscripted-general-2cdd560e=tcp:8000 -enable_iam_login &> /tmp/cloud_sql_proxy.log &
+          docker run \
+            --net=host \
+            -e "FLYWAY_URL=jdbc:postgresql://localhost:8000/all_svc_postgrest" \
+            -e "FLYWAY_USER=all-github-db-migrations@gifted-mountain-413701.iam" \
+            -e "FLYWAY_PASSWORD=" \
+            flyway/flyway:10-alpine migrate
+
+      - name: Print SQL Proxy Logs
+        if: failure()
+        run: |
+          cat /tmp/cloud_sql_proxy.log
+
