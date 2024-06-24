@@ -46,6 +46,7 @@ jobs:
           ./cloud_sql_proxy -instances=gifted-mountain-413701:us-central1:willscripted-general-2cdd560e=tcp:8000 -enable_iam_login &> /tmp/cloud_sql_proxy.log &
           docker run \
             --net=host \
+            -v $PWD/sql:/flyway/sql \
             -e "FLYWAY_URL=jdbc:postgresql://localhost:8000/all_svc_postgrest" \
             -e "FLYWAY_USER=all-github-db-migrations@gifted-mountain-413701.iam" \
             -e "FLYWAY_PASSWORD=" \
