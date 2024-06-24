@@ -1,0 +1,84 @@
+name: Integrate Pull Request
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pre-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
+  generate-docker-creds:
+    name: Set-up
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      gcloud_docker_access_token: ${{ steps.generate_token.outputs.token }}
+    steps:
+      - uses: 'actions/checkout@v3'
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: 'projects/1092955291502/locations/global/workloadIdentityPools/github/providers/willscripted-github-provider'
+          service_account: 'all-github-builder@gifted-mountain-413701.iam.gserviceaccount.com'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          version: '>= 398.0.0'
+
+      - id: generate_token
+        run: echo "token=$(gcloud auth print-access-token)" >> "$GITHUB_OUTPUT"
+
+  lint:
+    name: "Lint: sqlfluff"
+    uses: ./.github/workflows/callable-lint-sqlfluff.yml
+    secrets: inherit
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  test:
+    name: "Test: Applies Cleanly"
+    uses: ./.github/workflows/callable-test-apply.yml
+    secrets: inherit
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  plan:
+    name: "Run: Plan"
+    uses: ./.github/workflows/callable-run-plan.yml
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    secrets: inherit
+    needs:
+      - test
+      - lint
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+      GCLOUD_DOCKER_ACCESS_TOKEN: ${{ needs.generate-docker-creds.outputs.gcloud_docker_access_token }}
+
+
+  apply:
+    name: "Run: Apply"
+    uses: ./.github/workflows/callable-run-apply.yml
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    secrets: inherit
+    needs:
+      - plan
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+      GCLOUD_DOCKER_ACCESS_TOKEN: ${{ needs.generate-docker-creds.outputs.gcloud_docker_access_token }}
+
+    
