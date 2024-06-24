@@ -1,9 +1,19 @@
-name: Validate Pull Request
+name: Integrate Pull Request
 on:
-  pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
+  pre-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
   generate-docker-creds:
     name: Set-up
     runs-on: ubuntu-latest
@@ -56,3 +66,19 @@ jobs:
     with:
       sha: ${{ github.event.pull_request.head.sha }}
       GCLOUD_DOCKER_ACCESS_TOKEN: ${{ needs.generate-docker-creds.outputs.gcloud_docker_access_token }}
+
+
+  apply:
+    name: "Run: Apply"
+    uses: ./.github/workflows/callable-run-apply.yml
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    secrets: inherit
+    needs:
+      - plan
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+      GCLOUD_DOCKER_ACCESS_TOKEN: ${{ needs.generate-docker-creds.outputs.gcloud_docker_access_token }}
+
+    
